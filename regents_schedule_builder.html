@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Regents Proctoring Schedule Builder</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; max-width: 1500px; margin: 0 auto; padding: 24px; color: #1f2937; }
+  h1 { font-size: 1.5em; margin: 0 0 6px; }
+  .subtitle { color: #4b5563; font-size: 14px; margin-bottom: 20px; }
+  h2 { font-size: 1.0em; margin: 0 0 8px; }
+  textarea { width: 100%; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; resize: vertical; }
+  textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+  button { background: #2563eb; color: white; border: none; padding: 9px 18px; cursor: pointer; border-radius: 4px; font-size: 14px; margin: 4px 4px 4px 0; font-weight: 500; }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #6b7280; }
+  button.secondary:hover { background: #4b5563; }
+  button.green { background: #059669; }
+  button.green:hover { background: #047857; }
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+  @media (max-width: 900px) { .input-grid { grid-template-columns: 1fr; } }
+  .panel { background: #f9fafb; padding: 14px; border-radius: 6px; border: 1px solid #e5e7eb; }
+  .panel-title { font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+  .panel-help { font-size: 12px; color: #6b7280; margin-bottom: 8px; line-height: 1.5; }
+  .panel-help code { background: #e5e7eb; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  table { border-collapse: collapse; margin-top: 14px; font-size: 11px; }
+  th, td { border: 1px solid #d1d5db; padding: 3px 6px; text-align: center; min-width: 32px; color: #111827; }
+  th { background: #f3f4f6; font-weight: 600; }
+  th.date-header { background: #dbeafe; color: #1e3a8a; }
+  .name-col { text-align: left !important; min-width: 130px; white-space: nowrap; }
+  .messages { padding: 10px 14px; border-radius: 4px; margin-top: 12px; font-size: 13px; line-height: 1.5; }
+  .messages.warn { background: #fef3c7; border: 1px solid #f59e0b; color: #78350f; }
+  .messages.error { background: #fee2e2; border: 1px solid #ef4444; color: #7f1d1d; }
+  .messages.ok { background: #d1fae5; border: 1px solid #10b981; color: #064e3b; }
+  td.room { background: #ecfdf5; color: #064e3b; font-weight: 700; }
+  td.duty-H { color: #1f2937; font-weight: 600; }
+  td.duty-L { color: #92400e; font-weight: 700; background: #fffbeb; }
+  td.duty-S { color: #1e40af; font-weight: 700; background: #eff6ff; }
+  td.duty-off { color: #374151; background: #f3f4f6; font-weight: 600; font-style: italic; }
+
+  /* Preview tables under each input panel */
+  .preview-wrap { margin-top: 6px; }
+  .preview-label { font-size: 11px; color: #6b7280; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .preview-label .count { font-weight: 600; color: #374151; }
+  .preview-table-scroll { max-height: 340px; min-height: 100px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 4px; background: white; }
+  .preview-table-scroll table { border-collapse: collapse; font-size: 11px; width: 100%; }
+  .preview-table-scroll th, .preview-table-scroll td { padding: 3px 6px; border: 1px solid #e5e7eb; text-align: center; white-space: nowrap; }
+  .preview-table-scroll th { background: #f3f4f6; position: sticky; top: 0; font-weight: 600; z-index: 1; box-shadow: 0 1px 0 #d1d5db; }
+  .preview-table-scroll td.name { text-align: left; min-width: 110px; }
+  .preview-table-scroll td.empty { background: #fafafa; color: #d1d5db; }
+  .preview-empty { padding: 24px 16px; text-align: center; color: #9ca3af; font-size: 13px; background: white; border: 1px dashed #d1d5db; border-radius: 4px; line-height: 1.5; }
+  .preview-error { padding: 10px; background: #fee2e2; color: #7f1d1d; font-size: 12px; border-radius: 4px; border: 1px solid #fca5a5; }
+
+  /* Panel title row with action button */
+  .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .panel-title-row .panel-title { margin-bottom: 0; }
+  .panel-action-btn { background: #2563eb; color: white; border: none; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-size: 12px; font-weight: 500; margin: 0; white-space: nowrap; }
+  .panel-action-btn:hover { background: #1d4ed8; }
+
+  /* Date-matching callout */
+  .date-match-banner { background: #fffbeb; border: 1px solid #fcd34d; color: #78350f; padding: 10px 14px; border-radius: 5px; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
+  .date-match-banner b { color: #78350f; }
+  .date-match-banner code { background: #fef3c7; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(17,24,39,0.55); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.active { display: flex; }
+  .modal-box { background: white; border-radius: 8px; width: min(820px, 100%); max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+  .modal-header { padding: 16px 20px 12px; border-bottom: 1px solid #e5e7eb; }
+  .modal-title { font-size: 16px; font-weight: 600; margin: 0 0 6px; color: #111827; }
+  .modal-help { font-size: 12px; color: #4b5563; line-height: 1.5; }
+  .modal-help code { background: #e5e7eb; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  .modal-body { padding: 14px 20px; flex: 1; overflow: auto; }
+  .modal-body textarea { width: 100%; min-height: 360px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; resize: vertical; box-sizing: border-box; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-footer button { margin: 0; }
+
+  /* Detailed notes section */
+  details ul ul { margin-top: 4px; }
+  details h4 { margin: 12px 0 4px; font-size: 13px; color: #1f2937; }
+  details h4:first-child { margin-top: 0; }
+  details table.notes-table { border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+  details table.notes-table th, details table.notes-table td { border: 1px solid #d1d5db; padding: 4px 8px; text-align: left; }
+  details table.notes-table th { background: #f3f4f6; }
+  details table.notes-table code { background: #e5e7eb; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  .legend { font-size: 12px; color: #4b5563; margin-top: 14px; padding: 8px 12px; background: #f9fafb; border-radius: 4px; border: 1px solid #e5e7eb; }
+  .legend span.swatch { display: inline-block; padding: 2px 8px; margin: 0 8px 0 4px; border-radius: 3px; font-weight: 600; }
+  details { margin: 8px 0 16px; font-size: 13px; color: #4b5563; }
+  details summary { cursor: pointer; color: #2563eb; font-weight: 500; padding: 4px 0; }
+  details ul { margin: 6px 0 0 0; padding-left: 22px; line-height: 1.65; }
+  .scroll-x { overflow-x: auto; max-width: 100%; }
+  .actions { margin: 14px 0 6px; }
+</style>
+</head>
+<body>
+
+<h1>Regents Proctoring Schedule Builder</h1>
+<p class="subtitle">Paste teacher shifts and room assignments, click Generate, copy the result back to your "Teachers to Rooms" sheet in Excel.</p>
+
+<div class="date-match-banner">
+  <b>⚠ Important — dates must match exactly between the two panels.</b><br>
+  The date headers in panel 1 (e.g. <code>6/9</code>, <code>6/10</code>) must match the values in the <b>Date</b> column of panel 2 exactly. If panel 1 says <code>6/9</code> and panel 2 says <code>6/9/2025</code>, they will <i>not</i> match — every teacher will get fallback duties (H/L) for that date instead of room assignments.
+</div>
+
+<div class="input-grid">
+  <div class="panel">
+    <div class="panel-title-row">
+      <div class="panel-title">1. Teacher Shifts</div>
+      <button class="panel-action-btn" onclick="openPasteModal('teachers')">📝 Paste / Edit Data</button>
+    </div>
+    <div class="panel-help">
+      Header: <code>Teacher</code> followed by exam-date columns. <b>Date labels must match panel 2's Date column exactly.</b>
+    </div>
+    <textarea id="teachers" style="display:none"></textarea>
+    <div class="preview-wrap">
+      <div class="preview-label">
+        <span>Data</span>
+        <span class="count" id="teachersCount"></span>
+      </div>
+      <div id="teachersPreview" class="preview-table-scroll"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title-row">
+      <div class="panel-title">2. Room Assignments (from '252' sheet)</div>
+      <button class="panel-action-btn" onclick="openPasteModal('rooms')">📝 Paste / Edit Data</button>
+    </div>
+    <div class="panel-help">
+      Header: <code>Date  Room  A  B  C  D  E  F</code>. <b>Each Date value must match a date header in panel 1 exactly.</b>
+    </div>
+    <textarea id="rooms" style="display:none"></textarea>
+    <div class="preview-wrap">
+      <div class="preview-label">
+        <span>Data</span>
+        <span class="count" id="roomsCount"></span>
+      </div>
+      <div id="roomsPreview" class="preview-table-scroll"></div>
+    </div>
+  </div>
+</div>
+
+<details>
+  <summary>How the schedule is built — full logic reference</summary>
+
+  <h4>Time slots</h4>
+  <table class="notes-table">
+    <tr><th>Slot</th><th>Start time</th><th>Notes</th></tr>
+    <tr><td><b>A</b></td><td>9:00am</td><td>First period</td></tr>
+    <tr><td><b>B</b></td><td>10:55am</td><td>Mid-morning</td></tr>
+    <tr><td><b>C</b></td><td>12:50pm</td><td>Lunch period</td></tr>
+    <tr><td><b>D</b></td><td>1:50pm</td><td>Early afternoon</td></tr>
+    <tr><td><b>E</b></td><td>3:45pm</td><td>Late afternoon</td></tr>
+    <tr><td><b>F</b></td><td>5:40pm</td><td>Evening (only CC shift active)</td></tr>
+  </table>
+
+  <h4>Shift codes — whole-day codes (every slot shows the same value)</h4>
+  <table class="notes-table">
+    <tr><th>Code</th><th>Meaning</th><th>Output for all 6 slots</th></tr>
+    <tr><td><code>S</code></td><td>Scoring</td><td><code>S S S S S S</code></td></tr>
+    <tr><td><code>E</code></td><td>Exam</td><td><code>E E E E E E</code></td></tr>
+    <tr><td><code>R</code></td><td>Classroom (regular teaching)</td><td><code>R R R R R R</code></td></tr>
+    <tr><td><code>AB</code></td><td>Absent</td><td><code>AB AB AB AB AB AB</code></td></tr>
+    <tr><td><code>N/A</code> or <code>NA</code></td><td>Not proctoring</td><td><code>N/A N/A N/A N/A N/A N/A</code></td></tr>
+  </table>
+  <p style="font-size:12px;color:#6b7280;margin:4px 0;">These codes bypass the room lookup. Even if the teacher appears in panel 2 for that date, the whole day is filled with the code.</p>
+
+  <h4>Shift codes — active proctoring shifts</h4>
+  <table class="notes-table">
+    <tr><th>Code</th><th>Hours</th><th>Active slots</th></tr>
+    <tr><td><code>AA</code></td><td>9:00am – 3:45pm</td><td>A, B, C, D (off at E and F)</td></tr>
+    <tr><td><code>BB</code></td><td>10:55am – 5:40pm</td><td>B, C, D, E (blank at A, off at F)</td></tr>
+    <tr><td><code>CC</code></td><td>12:50pm – 7:35pm</td><td>C, D, E, F (blank at A and B)</td></tr>
+    <tr><td><i>blank</i></td><td>Not assigned</td><td>All slots blank (slots E and F may inherit "H" — legacy formula quirk)</td></tr>
+  </table>
+
+  <h4>How each output cell is determined</h4>
+  <p style="font-size:12px;color:#374151;margin:4px 0;">For each teacher × date × time-slot, the tool evaluates in this order:</p>
+  <ol style="font-size:12px;color:#374151;line-height:1.7;">
+    <li><b>Blank check (slots A–D only):</b> if shift is blank → output blank.</li>
+    <li><b>Whole-day passthrough:</b> if shift is <code>S</code>, <code>E</code>, <code>R</code>, <code>AB</code>, <code>N/A</code>, or <code>NA</code> → output that code.</li>
+    <li><b>Room lookup:</b> find the teacher in panel 2 for this date and slot. If found → output the room number.</li>
+    <li><b>Fallback rotation:</b> output <code>H</code> (hallway), <code>L</code> (lunch), or blank based on the shift code, slot, and previous slot.</li>
+  </ol>
+
+  <h4>Fallback rotation rules (when teacher isn't in a room)</h4>
+  <table class="notes-table">
+    <tr><th>Slot</th><th>Rule</th></tr>
+    <tr><td><b>A</b></td><td><code>AA</code> → <code>H</code>; others → blank (not on shift yet)</td></tr>
+    <tr><td><b>B</b></td><td><code>CC</code> → blank; <code>AA</code> after a room → <code>L</code>; arriving (prev blank) → <code>H</code></td></tr>
+    <tr><td><b>C</b></td><td><code>AA</code> after <code>L</code> → <code>H</code>; <code>BB</code> after <code>H</code> → <code>L</code>; <code>CC</code> → <code>H</code>; else → <code>L</code></td></tr>
+    <tr><td><b>D</b></td><td><code>AA</code> → <code>H</code>; <code>BB</code> just out of a room → <code>H</code>; <code>CC</code> → <code>L</code>; else → <code>H</code></td></tr>
+    <tr><td><b>E</b></td><td><code>AA</code> → off (blank); <code>BB</code> → <code>H</code> if still active; else → <code>H</code></td></tr>
+    <tr><td><b>F</b></td><td><code>AA</code> and <code>BB</code> → off (blank); <code>CC</code> → <code>H</code></td></tr>
+  </table>
+
+  <h4>Other things to know</h4>
+  <ul style="line-height:1.7;">
+    <li><b>Name matching is case-insensitive.</b> "SMITH J", "Smith J", and "smith j" all match.</li>
+    <li><b>Leave room cells blank</b> in panel 2 if no one is proctoring that slot in that room.</li>
+    <li><b>Auto-saves to this browser</b> ~½ second after each edit. Close the tab and reopen — your data is still there. Use <i>Export Data</i> for a portable JSON backup.</li>
+    <li><b>Preserves original formula behavior</b> for valid shifts (AA/BB/CC/S). Improvements: cells that used to return <code>FALSE</code> now return blank; N/A, AB, E, R now produce sensible whole-day output (the original formulas would give random H/L values for these).</li>
+    <li><b>To use with Excel:</b> Ctrl+C from Excel → Ctrl+V into a textarea here. After Generate, click <i>Copy Output as TSV</i> → Ctrl+V into Excel.</li>
+  </ul>
+</details>
+
+<div class="actions">
+  <button onclick="generate()">Generate Schedule</button>
+  <button class="secondary" onclick="exportData()">⬇ Export Data</button>
+  <button class="secondary" onclick="document.getElementById('importFile').click()">⬆ Import Data</button>
+  <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(event)">
+  <button class="secondary" onclick="loadSample()">Load Sample</button>
+  <button class="secondary" onclick="clearAll()">Clear</button>
+  <span id="saveStatus" style="font-size:12px;color:#6b7280;margin-left:10px;"></span>
+</div>
+
+<div id="messages"></div>
+<div id="output" class="scroll-x"></div>
+
+<div class="legend" id="legend" style="display:none;">
+  <b>Legend:</b>
+  <span class="swatch room" style="background:#ecfdf5;color:#064e3b;font-weight:700;">409</span> room (proctoring)
+  <span class="swatch duty-H" style="background:#f9fafb;color:#1f2937;font-weight:600;">H</span> hallway
+  <span class="swatch duty-L" style="background:#fffbeb;color:#92400e;font-weight:700;">L</span> lunch
+  <span class="swatch duty-S" style="background:#eff6ff;color:#1e40af;font-weight:700;">S</span> scoring
+  <span class="swatch duty-off" style="background:#f3f4f6;color:#374151;font-weight:600;font-style:italic;">E / R / AB / N/A</span> off-duty
+  · blank = not yet on shift
+</div>
+
+<div class="actions" id="outputActions" style="display:none;">
+  <button class="green" onclick="copyTSV()">📋 Copy Output as TSV</button>
+  <button class="secondary" onclick="downloadTSV()">⬇ Download as .tsv file</button>
+</div>
+
+<script>
+const SLOTS = ['A','B','C','D','E','F'];
+
+// Shifts that mean "whole day = this code" — bypasses rotation and room lookup.
+// Compared case-insensitively. "N/A" and "NA" both supported.
+const PASSTHROUGH_SHIFTS = new Set(['S', 'N/A', 'NA', 'AB', 'E', 'R']);
+
+// ---------- Parsing ----------
+function parseTSV(text) {
+  return text.replace(/\r\n/g, '\n').split('\n').map(line => line.split('\t'));
+}
+
+function parseTeachers(text) {
+  const errors = [];
+  if (!text.trim()) { errors.push('Teacher panel is empty.'); return {teachers:[], dates:[], errors}; }
+  const rows = parseTSV(text);
+  if (rows.length < 2) { errors.push('Teacher data needs a header row + at least one teacher row.'); return {teachers:[], dates:[], errors}; }
+  const header = rows[0].map(h => (h || '').trim());
+  if (!header[0] || header[0].toLowerCase() !== 'teacher') errors.push('Teacher header: first column should be "Teacher".');
+  const dates = header.slice(1).filter(d => d !== '');
+  if (!dates.length) { errors.push('Teacher header needs at least one date column.'); return {teachers:[], dates:[], errors}; }
+  const teachers = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const name = (row[0] || '').trim();
+    if (!name) continue;
+    const shifts = {};
+    dates.forEach((d, j) => { shifts[d] = (row[j+1] || '').trim(); });
+    teachers.push({name, shifts});
+  }
+  return {teachers, dates, errors};
+}
+
+function parseRooms(text) {
+  const errors = [];
+  if (!text.trim()) return {index:{}, errors};  // optional input
+  const rows = parseTSV(text);
+  if (rows.length < 2) { errors.push('Room data needs header + at least one row.'); return {index:{}, errors}; }
+  const header = rows[0].map(h => (h || '').trim().toLowerCase());
+  const dateCol = header.indexOf('date');
+  const roomCol = header.indexOf('room');
+  if (dateCol === -1 || roomCol === -1) {
+    errors.push('Room header must include "Date" and "Room" columns.');
+    return {index:{}, errors};
+  }
+  const slotCols = SLOTS.map(s => header.indexOf(s.toLowerCase()));
+  const missingSlots = SLOTS.filter((s,i) => slotCols[i] === -1);
+  if (missingSlots.length) errors.push('Room header missing slot columns: ' + missingSlots.join(', ') + '.');
+
+  // index[date][normalizedName][slotLetter] = room
+  // Names are normalized (uppercase, trimmed) so matching is case-insensitive.
+  const index = {};
+  const roomNamesOriginal = new Map(); // normalized -> first-seen original case (for display)
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const date = (row[dateCol] || '').trim();
+    const room = (row[roomCol] || '').trim();
+    if (!date || !room) continue;
+    if (!index[date]) index[date] = {};
+    SLOTS.forEach((s, si) => {
+      const col = slotCols[si];
+      if (col === -1) return;
+      const name = (row[col] || '').trim();
+      if (!name) return;
+      const key = normName(name);
+      if (!roomNamesOriginal.has(key)) roomNamesOriginal.set(key, name);
+      if (!index[date][key]) index[date][key] = {};
+      index[date][key][s] = room;
+    });
+  }
+  return {index, roomNamesOriginal, errors};
+}
+
+function normName(s) {
+  return (s || '').trim().toUpperCase();
+}
+
+// ---------- Rotation logic ----------
+function isNumberLike(v) {
+  if (v === '' || v === ' ' || v === null || v === undefined) return false;
+  return !isNaN(Number(v));
+}
+function isTextNonEmpty(v) {
+  return typeof v === 'string' && v.trim() !== '' && !isNumberLike(v);
+}
+
+// Translates the original nested-IF fallback rules per slot.
+// Slot A: only AA gets H, rest blank.
+// Slot B: rotate AA into L after a room; arriving teachers get H.
+// Slot C: alternate H/L based on previous slot; CC always H.
+// Slot D: AA back to H; BB to H if previous was a room; CC to L.
+// Slot E: AA done (" "); BB to H if previous had activity; else H.
+// Slot F: AA and BB done; CC to H.
+function fallback(shift, slotIdx, prev) {
+  const slot = SLOTS[slotIdx];
+  const prevIsNum = isNumberLike(prev);
+  const prevIsText = isTextNonEmpty(prev);
+  const prevEmpty = prev === '' || prev === undefined;
+
+  switch(slot) {
+    case 'A':
+      if (shift === 'AA') return 'H';
+      return '';
+    case 'B':
+      if (shift === 'CC') return '';
+      if (shift === 'AA' && !prevEmpty) return 'L';
+      if (prevEmpty) return 'H';
+      return '';
+    case 'C':
+      if (shift === 'AA' && prev === 'L') return 'H';
+      if (shift === 'BB' && prev === 'H') return 'L';
+      if (shift === 'CC') return 'H';
+      return 'L';
+    case 'D':
+      if (shift === 'AA') return 'H';
+      if (shift === 'BB' && prevIsNum) return 'H';
+      if (shift === 'CC') return 'L';
+      return 'H';
+    case 'E':
+      if (shift === 'AA') return ' ';
+      // Original: OR( AND(ISTEXT(prev), shift=BB), ISNUMBER(prev) )
+      //   triggered → IF(shift=BB, "H", " ")
+      //   not triggered → "H"
+      const triggered = (prevIsText && shift === 'BB') || prevIsNum;
+      if (triggered) return (shift === 'BB') ? 'H' : ' ';
+      return 'H';
+    case 'F':
+      if (shift === 'AA' || shift === 'BB') return ' ';
+      return 'H';
+  }
+  return '';
+}
+
+function computeSchedule(teachers, dates, roomIndex) {
+  const result = {};
+  for (const t of teachers) {
+    result[t.name] = {};
+    for (const date of dates) {
+      const shift = t.shifts[date] || '';
+      const slots = [];
+      for (let i = 0; i < 6; i++) {
+        const slotLetter = SLOTS[i];
+
+        // Per original: slots A-D blank-out for blank shift; E and F do not.
+        if (i < 4 && shift === '') { slots.push(''); continue; }
+        // Whole-day passthrough codes — same value in all 6 slots.
+        // Bypasses room lookup, so a stray room assignment for these days is ignored.
+        if (PASSTHROUGH_SHIFTS.has(shift.toUpperCase())) { slots.push(shift); continue; }
+
+        // Room lookup (case-insensitive)
+        const teacherRooms = (roomIndex[date] || {})[normName(t.name)];
+        const room = teacherRooms ? teacherRooms[slotLetter] : null;
+        if (room) { slots.push(room); continue; }
+
+        // Fallback duty
+        const prev = i > 0 ? slots[i-1] : '';
+        slots.push(fallback(shift, i, prev));
+      }
+      result[t.name][date] = slots;
+    }
+  }
+  return result;
+}
+
+// ---------- UI ----------
+let lastSchedule = null;
+let lastDates = null;
+let lastTeachers = null;
+
+function generate() {
+  const teachersText = document.getElementById('teachers').value;
+  const roomsText = document.getElementById('rooms').value;
+  document.getElementById('messages').innerHTML = '';
+
+  const {teachers, dates, errors: te} = parseTeachers(teachersText);
+  const {index: roomIndex, roomNamesOriginal, errors: re} = parseRooms(roomsText);
+
+  const allErrors = [...te, ...re];
+  if (allErrors.length) {
+    showMessage('Errors:<br>• ' + allErrors.join('<br>• '), 'error');
+    document.getElementById('output').innerHTML = '';
+    document.getElementById('legend').style.display = 'none';
+    document.getElementById('outputActions').style.display = 'none';
+    return;
+  }
+  if (!teachers.length) { showMessage('No teachers parsed.', 'error'); return; }
+
+  // Warn about names in Rooms not in Teachers (case-insensitive comparison; show original case)
+  const teacherNamesNorm = new Set(teachers.map(t => normName(t.name)));
+  const unmatched = [];
+  if (roomNamesOriginal) {
+    for (const [key, original] of roomNamesOriginal) {
+      if (!teacherNamesNorm.has(key)) unmatched.push(original);
+    }
+  }
+
+  // Warn about date mismatches between the two panels
+  const teacherDateSet = new Set(dates);
+  const roomDateSet = new Set(Object.keys(roomIndex));
+  const datesInRoomsOnly = [...roomDateSet].filter(d => !teacherDateSet.has(d));
+  const datesInTeachersOnly = [...teacherDateSet].filter(d => !roomDateSet.has(d));
+
+  const schedule = computeSchedule(teachers, dates, roomIndex);
+  lastSchedule = schedule;
+  lastDates = dates;
+  lastTeachers = teachers;
+
+  renderTable(teachers, dates, schedule);
+
+  let html = '<b>✓</b> Generated schedule for <b>' + teachers.length + '</b> teachers across <b>' + dates.length + '</b> date(s).';
+  let kind = 'ok';
+  const warnings = [];
+
+  if (datesInRoomsOnly.length) {
+    warnings.push('<b>⚠ Dates in panel 2 that don\'t match any header in panel 1:</b><br><span style="font-family:monospace;font-size:12px;">' +
+      datesInRoomsOnly.map(escapeHTML).join(', ') +
+      '</span><br><i>Room assignments for these dates will be ignored. Check that date labels match exactly.</i>');
+  }
+  if (datesInTeachersOnly.length && roomDateSet.size > 0) {
+    warnings.push('<b>ℹ Dates in panel 1 with no room data in panel 2:</b><br><span style="font-family:monospace;font-size:12px;">' +
+      datesInTeachersOnly.map(escapeHTML).join(', ') +
+      '</span><br><i>Teachers will get fallback duties (H/L/blank) only for these dates.</i>');
+  }
+  if (unmatched.length) {
+    warnings.push('<b>⚠ Names in Room Assignments not in Teacher list (' + unmatched.length + '):</b><br><span style="font-family:monospace;font-size:12px;">' +
+      unmatched.slice(0, 15).map(escapeHTML).join(', ') +
+      (unmatched.length > 15 ? ', ...' : '') + '</span><br><i>These teachers will appear in rooms but have no shift codes.</i>');
+  }
+
+  if (warnings.length) {
+    html += '<br><br>' + warnings.join('<br><br>');
+    kind = 'warn';
+  }
+  showMessage(html, kind);
+}
+
+function showMessage(html, kind) {
+  document.getElementById('messages').innerHTML = '<div class="messages ' + (kind || '') + '">' + html + '</div>';
+}
+
+function renderTable(teachers, dates, schedule) {
+  let html = '<table id="scheduleTable"><thead>';
+  html += '<tr><th class="name-col" rowspan="2">Teacher</th>';
+  for (const date of dates) html += '<th class="date-header" colspan="6">' + escapeHTML(date) + '</th>';
+  html += '</tr><tr>';
+  for (const _ of dates) for (const s of SLOTS) html += '<th>' + s + '</th>';
+  html += '</tr></thead><tbody>';
+  for (const t of teachers) {
+    html += '<tr><td class="name-col">' + escapeHTML(t.name) + '</td>';
+    for (const date of dates) {
+      const slots = schedule[t.name][date];
+      for (const v of slots) html += '<td class="' + cellClass(v) + '">' + escapeHTML(v) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById('output').innerHTML = html;
+  document.getElementById('legend').style.display = 'block';
+  document.getElementById('outputActions').style.display = 'block';
+}
+
+function cellClass(v) {
+  if (v == null || v === '' || v === ' ') return '';
+  if (v === 'H') return 'duty-H';
+  if (v === 'L') return 'duty-L';
+  if (v === 'S') return 'duty-S';
+  if (isNumberLike(v)) return 'room';
+  if (PASSTHROUGH_SHIFTS.has(String(v).toUpperCase())) return 'duty-off';
+  return '';
+}
+
+function escapeHTML(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- Live previews ----------
+function renderTeachersPreview() {
+  const container = document.getElementById('teachersPreview');
+  const countEl = document.getElementById('teachersCount');
+  const text = document.getElementById('teachers').value;
+  if (!text.trim()) {
+    container.innerHTML = '<div class="preview-empty">No data yet.<br>Click <b>📝 Paste / Edit Data</b> above to add data, or click <b>Load Sample</b> below.</div>';
+    countEl.textContent = '';
+    return;
+  }
+  const {teachers, dates, errors} = parseTeachers(text);
+  if (errors.length) {
+    container.innerHTML = '<div class="preview-error">' + errors.map(escapeHTML).join('<br>') + '</div>';
+    countEl.textContent = '';
+    return;
+  }
+  let html = '<table><thead><tr><th>Teacher</th>';
+  for (const d of dates) html += '<th>' + escapeHTML(d) + '</th>';
+  html += '</tr></thead><tbody>';
+  for (const t of teachers) {
+    html += '<tr><td class="name">' + escapeHTML(t.name) + '</td>';
+    for (const d of dates) {
+      const v = t.shifts[d] || '';
+      const empty = v === '' ? ' empty' : '';
+      html += '<td class="' + cellClass(v) + empty + '">' + escapeHTML(v) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  countEl.textContent = teachers.length + ' teacher' + (teachers.length === 1 ? '' : 's') + ' × ' + dates.length + ' date' + (dates.length === 1 ? '' : 's');
+}
+
+function renderRoomsPreview() {
+  const container = document.getElementById('roomsPreview');
+  const countEl = document.getElementById('roomsCount');
+  const text = document.getElementById('rooms').value;
+  if (!text.trim()) {
+    container.innerHTML = '<div class="preview-empty">No data yet.<br>Click <b>📝 Paste / Edit Data</b> above to add room assignments from the \'252\' sheet.</div>';
+    countEl.textContent = '';
+    return;
+  }
+  const {index, errors} = parseRooms(text);
+  if (errors.length) {
+    container.innerHTML = '<div class="preview-error">' + errors.map(escapeHTML).join('<br>') + '</div>';
+    countEl.textContent = '';
+    return;
+  }
+  // Reparse to get rows for display (parseRooms returns aggregated index; for preview, show raw rows)
+  const rows = parseTSV(text);
+  const header = rows[0].map(h => (h || '').trim());
+  let html = '<table><thead><tr>';
+  for (const h of header) html += '<th>' + escapeHTML(h) + '</th>';
+  html += '</tr></thead><tbody>';
+  let dataRows = 0;
+  let dateSet = new Set();
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row.some(c => (c || '').trim())) continue; // skip blank lines
+    dataRows++;
+    if (row[0]) dateSet.add(row[0].trim());
+    html += '<tr>';
+    for (let j = 0; j < header.length; j++) {
+      const v = (row[j] || '').trim();
+      const empty = v === '' ? ' empty' : '';
+      const nameCls = (j === 0 || j === 1) ? '' : '';
+      html += '<td class="' + nameCls + empty + '">' + escapeHTML(v) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  countEl.textContent = dataRows + ' row' + (dataRows === 1 ? '' : 's') + ' across ' + dateSet.size + ' date' + (dateSet.size === 1 ? '' : 's');
+}
+
+function refreshPreviews() {
+  renderTeachersPreview();
+  renderRoomsPreview();
+}
+
+// ---------- Paste / Edit modal ----------
+let modalTarget = null;
+
+function openPasteModal(target) {
+  modalTarget = target;
+  const textarea = document.getElementById(target);
+  const modal = document.getElementById('pasteModal');
+  const modalTextarea = document.getElementById('modalTextarea');
+  document.getElementById('modalTitle').textContent =
+    target === 'teachers' ? 'Edit Teacher Shifts' : 'Edit Room Assignments';
+  document.getElementById('modalHelp').innerHTML = target === 'teachers'
+    ? 'Paste tab-separated data from Excel. First row: <code>Teacher</code> followed by date columns. <b>Date labels must match panel 2 exactly.</b>'
+    : 'Paste tab-separated data. Header: <code>Date Room A B C D E F</code>. <b>Each Date must match a header in panel 1.</b>';
+  modalTextarea.value = textarea.value;
+  modal.classList.add('active');
+  setTimeout(() => { modalTextarea.focus(); modalTextarea.setSelectionRange(0, 0); }, 50);
+}
+
+function closePasteModal() {
+  document.getElementById('pasteModal').classList.remove('active');
+  modalTarget = null;
+}
+
+function applyPasteModal() {
+  if (!modalTarget) return;
+  const content = document.getElementById('modalTextarea').value;
+  const textarea = document.getElementById(modalTarget);
+  textarea.value = content;
+  // Trigger input event so preview refreshes + auto-save runs
+  textarea.dispatchEvent(new Event('input'));
+  closePasteModal();
+}
+
+// Close on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('pasteModal').classList.contains('active')) {
+    closePasteModal();
+  }
+});
+
+function buildTSV() {
+  if (!lastSchedule) return '';
+  const lines = [];
+  // Header row 1: date spans 6 cols
+  const row1 = ['Teacher'];
+  for (const date of lastDates) for (let i = 0; i < 6; i++) row1.push(i === 0 ? date : '');
+  lines.push(row1.join('\t'));
+  // Header row 2: slot letters
+  const row2 = [''];
+  for (const _ of lastDates) for (const s of SLOTS) row2.push(s);
+  lines.push(row2.join('\t'));
+  // Data rows
+  for (const t of lastTeachers) {
+    const row = [t.name];
+    for (const date of lastDates) row.push(...lastSchedule[t.name][date]);
+    lines.push(row.join('\t'));
+  }
+  return lines.join('\n');
+}
+
+function copyTSV() {
+  const tsv = buildTSV();
+  if (!tsv) return;
+  navigator.clipboard.writeText(tsv).then(() => {
+    showMessage('Copied to clipboard. Switch to Excel and paste (Ctrl+V) into the top-left cell of where you want it.', 'ok');
+  }).catch(() => {
+    // Fallback: show TSV in a textarea for manual copy
+    const ta = document.createElement('textarea');
+    ta.value = tsv; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showMessage('Copied (fallback method).', 'ok'); }
+    catch(e) { showMessage('Clipboard access denied. Use the Download button instead.', 'error'); }
+    document.body.removeChild(ta);
+  });
+}
+
+function downloadTSV() {
+  const tsv = buildTSV();
+  if (!tsv) return;
+  const blob = new Blob([tsv], {type: 'text/tab-separated-values'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'schedule.tsv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ---------- Sample data ----------
+function loadSample() {
+  document.getElementById('teachers').value = SAMPLE_TEACHERS;
+  document.getElementById('rooms').value = SAMPLE_ROOMS;
+  refreshPreviews();
+  showMessage('Sample data loaded. Click Generate to see the output.', 'ok');
+}
+
+function clearAll() {
+  if ((document.getElementById('teachers').value.trim() || document.getElementById('rooms').value.trim()) &&
+      !confirm('Clear all data? This wipes both panels and your auto-saved copy. Use Export Data first if you want a backup.')) {
+    return;
+  }
+  document.getElementById('teachers').value = '';
+  document.getElementById('rooms').value = '';
+  document.getElementById('output').innerHTML = '';
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('legend').style.display = 'none';
+  document.getElementById('outputActions').style.display = 'none';
+  lastSchedule = null;
+  refreshPreviews();
+  saveLocal();
+}
+
+// ---------- Persistence ----------
+const STORAGE_KEY = 'regents_schedule_data_v2';
+const LEGACY_STORAGE_KEYS = ['regents_schedule_data_v1'];
+
+// One-time cleanup: remove any legacy auto-saved data (may contain pre-anonymization names)
+try {
+  for (const k of LEGACY_STORAGE_KEYS) localStorage.removeItem(k);
+} catch (e) { /* ignore */ }
+
+function saveLocal() {
+  try {
+    const data = {
+      teachers: document.getElementById('teachers').value,
+      rooms: document.getElementById('rooms').value,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    setSaveStatus('✓ Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+  } catch (e) {
+    setSaveStatus('Auto-save unavailable (browser blocked storage)');
+  }
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.teachers !== undefined) document.getElementById('teachers').value = data.teachers;
+    if (data.rooms !== undefined) document.getElementById('rooms').value = data.rooms;
+    if (data.savedAt) setSaveStatus('Restored from ' + new Date(data.savedAt).toLocaleString());
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function setSaveStatus(text) {
+  const el = document.getElementById('saveStatus');
+  if (el) el.textContent = text;
+}
+
+let saveTimer;
+function debouncedSave() {
+  clearTimeout(saveTimer);
+  setSaveStatus('Saving…');
+  saveTimer = setTimeout(saveLocal, 600);
+}
+
+function exportData() {
+  const data = {
+    teachers: document.getElementById('teachers').value,
+    rooms: document.getElementById('rooms').value,
+    exportedAt: new Date().toISOString(),
+    version: 1
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = 'regents_schedule_' + stamp + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showMessage('Exported to JSON file. Keep it as a backup or share it.', 'ok');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (typeof data.teachers !== 'string' && typeof data.rooms !== 'string') {
+        throw new Error('File does not contain teacher/room data.');
+      }
+      document.getElementById('teachers').value = data.teachers || '';
+      document.getElementById('rooms').value = data.rooms || '';
+      refreshPreviews();
+      saveLocal();
+      generate();
+      showMessage('Imported data from ' + escapeHTML(file.name) + '.', 'ok');
+    } catch (err) {
+      showMessage('Failed to import: ' + escapeHTML(err.message), 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // allow re-importing the same file later
+}
+
+const SAMPLE_TEACHERS = `Teacher\t6/9\t6/10\t6/17\t6/18
+Anderson A\tAA\tR\tCC\tE
+Brown B\tN/A\tAA\tAA\tCC
+Carter C\tAA\tAA\tBB\tAA
+Davis D\tBB\tAA\tBB\tE
+Evans E\tAA\tR\tAA\tE
+Fisher F\tAA\tAA\tAA\tAA
+Gomez G\tAA\tAA\tAA\tE
+Harris H\tAA\tAA\tAA\tE
+Iverson I\tAA\tBB\tCC\tAA
+Johnson J\tAA\tAA\tBB\tAA
+Kennedy K\tAA\tAA\tBB\tAA
+Lopez L\tAA\tBB\tAA\tAA
+Morris M\tAA\tBB\tAA\tAA
+Nelson N\tAA\tAA\tAA\tAA
+Ortiz O\tAA\tAA\tBB\tAA
+Parker P\tAA\tAA\tAA\tAA
+Quinn Q\tAA\tBB\tAA\tAA
+Reed R\tAA\tAA\tBB\tAA
+Smith S\tBB\tAA\tAA\tAA
+Turner T\tR\tAA\tAA\tAA
+Wilson W\tR\tAA\tBB\tAA
+Young Y\tR\tAA\tAA\tAA`;
+
+const SAMPLE_ROOMS = `Date\tRoom\tA\tB\tC\tD\tE\tF
+6/9\t409\tIverson I\tJohnson J\tIverson I\t\t\t
+6/9\t415\tAnderson A\tKennedy K\tAnderson A\t\t\t
+6/9\t413\tLopez L\tMorris M\tLopez L\tMorris M\t\t
+6/9\t411\tNelson N\tOrtiz O\tNelson N\tOrtiz O\t\t
+6/9\t437\tFisher F\tEvans E\tFisher F\tEvans E\t\t
+6/9\t449\tParker P\tQuinn Q\tParker P\tQuinn Q\t\t
+6/9\t453\tReed R\tSmith S\tReed R\tSmith S\t\t
+6/10\t435\tTurner T\tWilson W\tTurner T\tWilson W\t\t
+6/10\t453\tReed R\tYoung Y\tReed R\tYoung Y\t\t`;
+
+// Startup: restore saved data if present, otherwise load sample
+if (!loadLocal()) {
+  loadSample();
+}
+refreshPreviews();
+generate();
+
+// Auto-save on edits + live preview
+document.getElementById('teachers').addEventListener('input', () => { debouncedSave(); renderTeachersPreview(); });
+document.getElementById('rooms').addEventListener('input', () => { debouncedSave(); renderRoomsPreview(); });
+</script>
+<!-- Paste / Edit modal -->
+<div class="modal-overlay" id="pasteModal" onclick="if (event.target === this) closePasteModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Edit Data</h3>
+      <div class="modal-help" id="modalHelp"></div>
+    </div>
+    <div class="modal-body">
+      <textarea id="modalTextarea" spellcheck="false" placeholder="Paste tab-separated data here..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="secondary" onclick="closePasteModal()">Cancel</button>
+      <button onclick="applyPasteModal()">Apply</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
