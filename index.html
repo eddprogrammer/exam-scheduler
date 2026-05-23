@@ -228,6 +228,7 @@
 
 <div class="actions" id="outputActions" style="display:none;">
   <button class="green" onclick="copyTSV()">📋 Copy Output as TSV</button>
+  <button class="green" onclick="copyScheduleOnlyTSV()">📋 Copy Schedule Only TSV</button>
   <button class="secondary" onclick="downloadTSV()">⬇ Download as .tsv file</button>
 </div>
 
@@ -646,6 +647,17 @@ function buildTSV() {
   return lines.join('\n');
 }
 
+function buildScheduleOnlyTSV() {
+  if (!lastSchedule) return '';
+  const lines = [];
+  for (const t of lastTeachers) {
+    const row = [t.name];
+    for (const date of lastDates) row.push(...lastSchedule[t.name][date]);
+    lines.push(row.join('\t'));
+  }
+  return lines.join('\n');
+}
+
 function copyTSV() {
   const tsv = buildTSV();
   if (!tsv) return;
@@ -656,6 +668,20 @@ function copyTSV() {
     const ta = document.createElement('textarea');
     ta.value = tsv; document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); showMessage('Copied (fallback method).', 'ok'); }
+    catch(e) { showMessage('Clipboard access denied. Use the Download button instead.', 'error'); }
+    document.body.removeChild(ta);
+  });
+}
+
+function copyScheduleOnlyTSV() {
+  const tsv = buildScheduleOnlyTSV();
+  if (!tsv) return;
+  navigator.clipboard.writeText(tsv).then(() => {
+    showMessage('Copied schedule rows only (no date/A-F headers). Paste into Excel where needed.', 'ok');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = tsv; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showMessage('Copied schedule rows only (fallback method).', 'ok'); }
     catch(e) { showMessage('Clipboard access denied. Use the Download button instead.', 'error'); }
     document.body.removeChild(ta);
   });
