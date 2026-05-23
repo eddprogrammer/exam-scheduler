@@ -651,7 +651,7 @@ function buildScheduleOnlyTSV() {
   if (!lastSchedule) return '';
   const lines = [];
   for (const t of lastTeachers) {
-    const row = [t.name];
+    const row = [];
     for (const date of lastDates) row.push(...lastSchedule[t.name][date]);
     lines.push(row.join('\t'));
   }
